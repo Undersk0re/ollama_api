@@ -20,8 +20,8 @@ print(response)
 
 ## Documentation
 
-For more details, refer to the [Ollama API documentation](https://ollama.ai/docs).
-```
+For more details, refer to the [Ollama API documentation](https://github.com/ollama/ollama/tree/main/docs).
+
 
 ### Step 6: Install and Test
 
