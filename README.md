@@ -28,6 +28,11 @@ For more details, refer to the [Ollama API documentation](https://github.com/oll
 Navigate to the root directory of your package and install it locally:
 
 ```bash
+# build locally
+python setup.py sdist bdist_wheel
+```
+
+```bash
 pip install .
 ```
 
