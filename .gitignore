@@ -1,5 +1,5 @@
 .idea
 build
 ollama_api.egg-info
-venv
+.venv*/
 dist

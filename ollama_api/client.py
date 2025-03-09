@@ -1,113 +1,81 @@
-# ollama_api/client.py
 import requests
 
-
 class OllamaClient:
-    def __init__(self, base_url="http://localhost:11434"):
-        self.base_url = base_url
+    CONST = {
+        "data": {
+            'generate': "{'model': {model}, 'prompt': {prompt}, 'stream': {stream}, **{kwargs}}",
+            'chat': "{'model': {model}, 'messages': {messages}, 'stream': {stream}, **{kwargs}}",
+            'create': "{'name': {name}, 'modelfile': {modelfile}, 'stream': {stream}}",
+            'pull': "{'name': {name}, 'insecure': {insecure}, 'stream': {stream}}",
+            'push': "{'name': {name}, 'insecure': {insecure}, 'stream': {stream}}",
+            'show': "{'name': {name}, 'verbose': {verbose}}",
+            'copy': "{'source': {source}, 'destination': {destination}}",
+            'delete': "{'name': {name}}",
+            'embeddings': "{'model': {model}, 'prompt': {prompt}, **{kwargs}}"
+        },
+        'host': 'localhost', # <------------------ insert your Ollama host here
+        'connection': "http://{host}:11434",
+        'endpoint_exceptions': {
+            'tags': '/api/tags',
+            'running': '/api/ps'
+        }
+    }
+
+    def __init__(self, target_hostname: str = CONST['host']) -> None:
+        self.base_url = self.CONST['connection'].format(host=target_hostname)
+
+    def __build_data(self, template_key: str, formatted_params: dict) -> dict:
+        data_str = self.CONST['data'][template_key].format(**formatted_params)
+        return dict(eval(data_str))
+
+    def __build_endpoint(self, key: str) -> str:
+        return self.CONST['endpoint_exceptions'].get(key, f"/api/{key}")
+
+    def _build_rest(self, template_key: str, **params) -> tuple:
+        formatted_params = {k: repr(v) for k, v in params.items()}
+        return (
+            self.__build_data(template_key, formatted_params),
+            self.base_url + self.__build_endpoint(template_key)
+        )
 
     def request_completion(self, model, prompt, stream=True, **kwargs):
-        url = f"{self.base_url}/api/generate"
-        data = {
-            "model": model,
-            "prompt": prompt,
-            "stream": stream,
-            **kwargs
-        }
+        data, url = self._build_rest('generate', model=model, prompt=prompt, stream=stream, kwargs=kwargs)
         return requests.post(url, json=data)
 
     def request_chat_completion(self, model, messages, stream=True, **kwargs):
-        url = f"{self.base_url}/api/chat"
-        data = {
-            "model": model,
-            "messages": messages,
-            "stream": stream,
-            **kwargs
-        }
+        data, url = self._build_rest('chat', model=model, messages=messages, stream=stream, kwargs=kwargs)
         return requests.post(url, json=data)
 
     def request_model(self, name, modelfile, stream=True):
-        url = f"{self.base_url}/api/create"
-        data = {
-            "name": name,
-            "modelfile": modelfile,
-            "stream": stream
-        }
+        data, url = self._build_rest('create', name=name, modelfile=modelfile, stream=stream)
         return requests.post(url, json=data)
 
     def request_pull_model(self, name, insecure=False, stream=True):
-        url = f"{self.base_url}/api/pull"
-        data = {
-            "name": name,
-            "insecure": insecure,
-            "stream": stream
-        }
+        data, url = self._build_rest('pull', name=name, insecure=insecure, stream=stream)
         return requests.post(url, json=data)
 
     def request_push_model(self, name, insecure=False, stream=True):
-        url = f"{self.base_url}/api/push"
-        data = {
-            "name": name,
-            "insecure": insecure,
-            "stream": stream
-        }
+        data, url = self._build_rest('push', name=name, insecure=insecure, stream=stream)
         return requests.post(url, json=data)
 
-    def generate_completion(self, model, prompt, stream=True, **kwargs):
-        return self.request_completion(model, prompt, stream, **kwargs).json()
-
-    def generate_chat_completion(self, model, messages, stream=True, **kwargs):
-        return self.request_chat_completion(model, messages, stream, **kwargs).json()
-
-    def create_model(self, name, modelfile, stream=True):
-        return self.request_model(name, modelfile, stream).json()
-
-    def pull_model(self, name, insecure=False, stream=True):
-        return self.request_pull_model(name, insecure, stream).json()
-
-    def push_model(self, name, insecure=False, stream=True):
-        return self.request_push_model(name, insecure, stream).json()
-
-    def list_local_models(self):
-        url = f"{self.base_url}/api/tags"
-        return requests.get(url).json()
-
     def show_model_information(self, name, verbose=False):
-        url = f"{self.base_url}/api/show"
-        data = {
-            "name": name,
-            "verbose": verbose
-        }
+        data, url = self._build_rest('show', name=name, verbose=verbose)
         return requests.post(url, json=data).json()
 
     def copy_model(self, source, destination):
-        url = f"{self.base_url}/api/copy"
-        data = {
-            "source": source,
-            "destination": destination
-        }
-        response = requests.post(url, json=data)
-        return response.json()
+        data, url = self._build_rest('copy', source=source, destination=destination)
+        return requests.post(url, json=data).json()
 
     def delete_model(self, name):
-        url = f"{self.base_url}/api/delete"
-        data = {
-            "name": name
-        }
-        response = requests.delete(url, json=data)
-        return response.json()
+        data, url = self._build_rest('delete', name=name)
+        return requests.delete(url, json=data).json()
 
     def generate_embeddings(self, model, prompt, **kwargs):
-        url = f"{self.base_url}/api/embeddings"
-        data = {
-            "model": model,
-            "prompt": prompt,
-            **kwargs
-        }
-        response = requests.post(url, json=data)
-        return response.json()
+        data, url = self._build_rest('embeddings', model=model, prompt=prompt, kwargs=kwargs)
+        return requests.post(url, json=data).json()
+
+    def list_local_models(self):
+        return requests.get(self.base_url + self.CONST['endpoint_exceptions']['tags']).json()
 
     def list_running_models(self):
-        url = f"{self.base_url}/api/ps"
-        response = requests.get(url)
-        return response.json()
+        return requests.get(self.base_url + self.CONST['endpoint_exceptions']['running']).json()
