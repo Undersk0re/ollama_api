@@ -79,3 +79,4 @@ class OllamaClient:
 
     def list_running_models(self):
         return requests.get(self.base_url + self.CONST['endpoint_exceptions']['running']).json()
+    
