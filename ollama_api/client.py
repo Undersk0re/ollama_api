@@ -41,17 +41,19 @@ class OllamaClient:
         except Exception as e:
             return {'error': str(e)}
 
-    def request_completion(self, model, prompt, stream=False, **kwargs):
+    def request_completion(self, model, prompt, stream=False, **kwargs) -> tuple:
         data_str, url = self._build_rest('generate')
         data = eval(data_str)
-        return self._try_req('post', url, data)
+        full = self._try_req('post', url, data)
+        response = full['response']
+        emb_contex = ['contex'] # differ from normal embeddings
+        return response, emb_contex
 
     def request_chat_completion(self, model, messages, stream=False, **kwargs):
         data_str, url = self._build_rest('chat')
         data = eval(data_str)
-        result = self._try_req('post', url, data)
-        return result.get('message', {}).get('content') if 'error' not in result else result['error']
-
+        return self._try_req('post', url, data)['message']['content']
+    
     def request_model(self, name, modelfile, stream=False):
         data_str, url = self._build_rest('create')
         data = eval(data_str)
@@ -85,7 +87,7 @@ class OllamaClient:
     def generate_embeddings(self, model, prompt, **kwargs):
         data_str, url = self._build_rest('embeddings')
         data = eval(data_str)
-        return self._try_req('post', url, data)
+        return self._try_req('post', url, data)['embedding']
 
     def list_local_models(self):
         url = self.base_url + self.CONST['endpoint_exceptions']['tags']
@@ -103,7 +105,7 @@ if __name__ == "__main__":
     # Test request_completion
     print("TESTING request_completion")
     try:
-        completion_resp = client.request_completion(
+        completion_resp, _ = client.request_completion(
             model='llama3.2:1b',
             prompt="Explain quantum mechanics in simple terms",
             stream=False,
@@ -160,14 +162,3 @@ if __name__ == "__main__":
         print("Running Models Error:", str(e))
     print("-"*50)
 
-    # Test request_model (requires valid modelfile)
-    print("\nTESTING request_model (might require valid modelfile)")
-    try:
-        model_creation = client.request_model(
-            name='test-model',
-            modelfile='FROM llama3\nPARAMETER temperature 0.8'
-        )
-        print("Model Creation Response:", model_creation)
-    except Exception as e:
-        print("Model Creation Error:", str(e))
-    print("-"*50)
