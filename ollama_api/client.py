@@ -28,9 +28,6 @@ Simplicity is not an option
 import requests
 
 
-
-
-
 class OllamaClient:
     CONST = {
         "data": {
@@ -74,7 +71,7 @@ class OllamaClient:
             return {'error': str(e)}
 
     # tested methods
-    def request_completion(self, model:str, prompt, stream=False, **kwargs) -> tuple:
+    def request_completion(self, model: str, prompt: str, stream: bool = False, **kwargs) -> tuple:
         """Tested"""
         data_str, url = self._build_rest('generate')
         data = eval(data_str)
@@ -83,38 +80,37 @@ class OllamaClient:
         emb_contex = ['contex'] # differ from normal embeddings
         return response, emb_contex
 
-    def request_chat_completion(self, model, messages, stream=False, **kwargs):
+    def request_chat_completion(self, model: str, messages: list[dict], stream: bool = False, **kwargs)-> str:
         """Tested"""
         data_str, url = self._build_rest('chat')
         data = eval(data_str)
         return self._try_req('post', url, data)['message']['content']
 
-    def generate_embeddings(self, model, prompt, **kwargs):
+    def generate_embeddings(self, model: str, prompt: str, **kwargs):
         """Tested"""
         data_str, url = self._build_rest('embeddings')
         data = eval(data_str)
         return self._try_req('post', url, data)['embedding']
 
-    def list_local_models(self):
+    def list_local_models(self) -> dict:
         """Tested"""
         url = self.base_url + self.CONST['endpoint_exceptions']['tags']
         return self._try_req('get', url)
 
-    def list_running_models(self):
+    def list_running_models(self) -> dict:
         """Tested"""
         url = self.base_url + self.CONST['endpoint_exceptions']['running']
         return self._try_req('get', url)
     
-
-    # testing now 
-
-
     def using_custom_schema( self,model,user_prompt: str, system_prompt: str = "You are a helpful assistant", 
-                   output_format: str = "text", schema:type=None , stream=False  ,**kwargs) -> str: 
-        data_str, url = self._build_rest('schema')
-        url = url.replace('schema', 'generate')
-        data = eval(data_str)
-        return self._try_req('post', url, data)['response']
+                                schema:type=None , stream=False  ,**kwargs) -> str: 
+        response, _ = self.request_completion( model=model, prompt=user_prompt, system=system_prompt,
+                        format=schema() if schema else None, stream=stream,  **kwargs )
+        return response
+
+
+
+
     
     # untested methods
     def request_model(self, name, modelfile, stream=False):

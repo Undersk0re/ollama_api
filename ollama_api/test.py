@@ -2,7 +2,8 @@ from client import OllamaClient
 from pydantic import BaseModel
 
 class testSchema(BaseModel):
-    lista: list[str]
+    lista: list[str,str]
+    diz : dict
 
 if __name__ == "__main__":
     uri='localhost'
