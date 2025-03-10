@@ -4,3 +4,4 @@ ollama_api.egg-info
 .venv*/
 dist
 minimal.py
+*.pyc

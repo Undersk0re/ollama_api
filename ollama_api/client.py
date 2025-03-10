@@ -1,4 +1,35 @@
+"""_summary_
+
+
+Python client for interacting with an Ollama server, providing a high-level interface to manage and utilize language models.
+Offers methods for text generation, chat completion, embeddings creation, and model management (create/pull/push/delete).
+Includes tested core functionalities for completions, chat, embeddings, and model listing, with additional untested model operations.
+Default connection is set to 'http://localhost:11434' unless customized during initialization.
+
+
+The `OllamaClient` class provides a Python interface to interact with the Ollama API, enabling users to manage and utilize machine 
+learning models for tasks such as text generation, chat completion, embeddings, and model lifecycle operations. Key features include:  
+
+- API Abstraction: Simplifies HTTP requests to Ollama endpoints (e.g., `generate`, `chat`, `embeddings`) via helper methods.  
+- Model Management: Supports model creation, deletion, copying, pulling/pushing (with registry), and metadata inspection.  
+- Error Handling: Wraps API calls with try-except blocks to return structured error messages.  
+- Configuration: Uses constants for default host (`localhost`), connection settings, and endpoint mappings.  
+- Stream Support: Many methods include a `stream` parameter for handling real-time responses (though streaming logic is not fully implemented in tested methods).  
+
+Tested methods include text generation (`request_completion`), chat interactions (`request_chat_completion`), embeddings (`generate_embeddings`), 
+and model listing (`list_local_models`, `list_running_models`). Untested methods cover advanced model operations (e.g., `copy_model`, `delete_model`). 
+The class is designed for flexibility, allowing customization of host targets and optional parameters via `**kwargs`.
+
+Simplicity is not an option
+
+"""
+
+
 import requests
+
+
+
+
 
 class OllamaClient:
     CONST = {
@@ -11,7 +42,9 @@ class OllamaClient:
             'show': "{'name': name, 'verbose': verbose}",
             'copy': "{'source': source, 'destination': destination}",
             'delete': "{'name': name}",
-            'embeddings': "{'model': model, 'prompt': prompt, **kwargs}"
+            'embeddings': "{'model': model, 'prompt': prompt, **kwargs}",
+            'schema' : """{'model': model, 'stream': stream,'keep_alive': 10, 
+                'system': system_prompt, 'prompt': user_prompt,"format": schema() , **kwargs}"""
         },
         'host': 'localhost',
         'connection': "http://{host}:11434",
@@ -24,11 +57,10 @@ class OllamaClient:
     def __init__(self, target_hostname: str = CONST['host']) -> None:
         self.base_url = self.CONST['connection'].format(host=target_hostname)
 
-    def _build_rest(self, key) -> tuple:
-        return (
-            self.CONST['data'][key],
-            self.base_url + self.CONST['endpoint_exceptions'].get(key, f"/api/{key}")
-        )
+    def _build_rest(self, key) -> tuple[dict,str]:
+        return ( self.CONST['data'][key],
+                self.base_url + self.CONST['endpoint_exceptions'].get(key, f"/api/{key}")
+            )
 
     def _try_req(self, method: str, url: str, json_data: dict = None) -> dict:
         try:
@@ -42,8 +74,7 @@ class OllamaClient:
             return {'error': str(e)}
 
     # tested methods
-
-    def request_completion(self, model, prompt, stream=False, **kwargs) -> tuple:
+    def request_completion(self, model:str, prompt, stream=False, **kwargs) -> tuple:
         """Tested"""
         data_str, url = self._build_rest('generate')
         data = eval(data_str)
@@ -75,7 +106,16 @@ class OllamaClient:
         return self._try_req('get', url)
     
 
+    # testing now 
 
+
+    def using_custom_schema( self,model,user_prompt: str, system_prompt: str = "You are a helpful assistant", 
+                   output_format: str = "text", schema:type=None , stream=False  ,**kwargs) -> str: 
+        data_str, url = self._build_rest('schema')
+        url = url.replace('schema', 'generate')
+        data = eval(data_str)
+        return self._try_req('post', url, data)['response']
+    
     # untested methods
     def request_model(self, name, modelfile, stream=False):
         data_str, url = self._build_rest('create')
@@ -106,69 +146,4 @@ class OllamaClient:
         data_str, url = self._build_rest('delete')
         data = eval(data_str)
         return self._try_req('post', url, data)
-
-
-if __name__ == "__main__":
-    uri='localhost'
-    client = OllamaClient(uri)
-    
-    # Test request_completion
-    print("TESTING request_completion")
-    try:
-        completion_resp, _ = client.request_completion(
-            model='llama3.2:1b',
-            prompt="Explain quantum mechanics in simple terms",
-            stream=False,
-            temperature=0.7
-        )
-        print("Completion Response:", completion_resp)
-    except Exception as e:
-        print("Completion Error:", str(e))
-    print("-"*50)
-
-    # Test request_chat_completion
-    print("\nTESTING request_chat_completion")
-    try:
-        chat_resp = client.request_chat_completion(
-            model='llama3.2:1b',
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant"},
-                {"role": "user", "content": "Why is the sky blue?"}
-            ],
-            stream=False
-        )
-        print("Chat Response:", chat_resp)
-    except Exception as e:
-        print("Chat Error:", str(e))
-    print("-"*50)
-
-    # Test generate_embeddings
-    print("\nTESTING generate_embeddings")
-    try:
-        embedding_resp = client.generate_embeddings(
-            model='llama3.2:1b',
-            prompt="This is a test sentence for embeddings"
-        )
-        print("Embeddings Response:", embedding_resp)
-    except Exception as e:
-        print("Embeddings Error:", str(e))
-    print("-"*50)
-
-    # Test list_local_models
-    print("\nTESTING list_local_models")
-    try:
-        local_models = client.list_local_models()
-        print("Local Models:", local_models)
-    except Exception as e:
-        print("Local Models Error:", str(e))
-    print("-"*50)
-
-    # Test list_running_models
-    print("\nTESTING list_running_models")
-    try:
-        running_models = client.list_running_models()
-        print("Running Models:", running_models)
-    except Exception as e:
-        print("Running Models Error:", str(e))
-    print("-"*50)
 
