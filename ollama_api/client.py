@@ -41,7 +41,10 @@ class OllamaClient:
         except Exception as e:
             return {'error': str(e)}
 
+    # tested methods
+
     def request_completion(self, model, prompt, stream=False, **kwargs) -> tuple:
+        """Tested"""
         data_str, url = self._build_rest('generate')
         data = eval(data_str)
         full = self._try_req('post', url, data)
@@ -50,10 +53,30 @@ class OllamaClient:
         return response, emb_contex
 
     def request_chat_completion(self, model, messages, stream=False, **kwargs):
+        """Tested"""
         data_str, url = self._build_rest('chat')
         data = eval(data_str)
         return self._try_req('post', url, data)['message']['content']
+
+    def generate_embeddings(self, model, prompt, **kwargs):
+        """Tested"""
+        data_str, url = self._build_rest('embeddings')
+        data = eval(data_str)
+        return self._try_req('post', url, data)['embedding']
+
+    def list_local_models(self):
+        """Tested"""
+        url = self.base_url + self.CONST['endpoint_exceptions']['tags']
+        return self._try_req('get', url)
+
+    def list_running_models(self):
+        """Tested"""
+        url = self.base_url + self.CONST['endpoint_exceptions']['running']
+        return self._try_req('get', url)
     
+
+
+    # untested methods
     def request_model(self, name, modelfile, stream=False):
         data_str, url = self._build_rest('create')
         data = eval(data_str)
@@ -84,19 +107,6 @@ class OllamaClient:
         data = eval(data_str)
         return self._try_req('post', url, data)
 
-    def generate_embeddings(self, model, prompt, **kwargs):
-        data_str, url = self._build_rest('embeddings')
-        data = eval(data_str)
-        return self._try_req('post', url, data)['embedding']
-
-    def list_local_models(self):
-        url = self.base_url + self.CONST['endpoint_exceptions']['tags']
-        return self._try_req('get', url)
-
-    def list_running_models(self):
-        url = self.base_url + self.CONST['endpoint_exceptions']['running']
-        return self._try_req('get', url)
-    
 
 if __name__ == "__main__":
     uri='localhost'
