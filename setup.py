@@ -7,6 +7,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'requests',
+        'pydantic',
     ],
     author='HinxVietti',
     author_email='hinxvietti@gmail.com',
@@ -19,5 +20,5 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
     ],
-    python_requires='>=3.6',
+    python_requires='>=3.8',
 )
